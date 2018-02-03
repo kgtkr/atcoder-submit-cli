@@ -1,0 +1,9 @@
+[package]
+name = "atcoder-submit-cli"
+version = "0.1.0"
+authors = ["kgtkr <kgtkr.jp@gmail.com>"]
+
+[dependencies]
+clap = "2.29"
+error-chain = "0.11"
+html5ever = "0.22.0"
