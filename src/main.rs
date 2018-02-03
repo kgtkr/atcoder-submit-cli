@@ -1,11 +1,21 @@
 #![recursion_limit = "1024"]
 #[macro_use]
 extern crate clap;
+extern crate cookie;
 #[macro_use]
 extern crate error_chain;
-extern crate html5ever;
+extern crate hyper;
 extern crate reqwest;
+extern crate scraper;
 use clap::{App, Arg};
+
+mod errors {
+    error_chain! {
+        foreign_links {
+            RequestError(::reqwest::Error);
+        }
+    }
+}
 
 fn main() {
     let app = App::new("atcoder-submit-cli")
@@ -33,4 +43,26 @@ fn main() {
 
     let user = matches.value_of("user").unwrap();
     let pass = matches.value_of("pass").unwrap();
+
+    println!("{:?}", login(user, pass));
+}
+
+fn login(user: &str, pass: &str) -> errors::Result<String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::RedirectPolicy::none())
+        .build()?;
+    let mut res = client
+        .post("https://practice.contest.atcoder.jp/login")
+        .form(&[("name", user), ("password", pass)])
+        .send()?;
+    let body = res.text()?;
+    Ok(res.headers()
+        .get::<reqwest::header::SetCookie>()
+        .unwrap()
+        .iter()
+        .map(|x| cookie::Cookie::parse(x.to_string()).unwrap())
+        .find(|x| x.name() == "_session")
+        .unwrap()
+        .value()
+        .to_string())
 }
