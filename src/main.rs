@@ -64,11 +64,10 @@ fn login(user: &str, pass: &str) -> login::Result<String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::RedirectPolicy::none())
         .build()?;
-    let mut res = client
+    let res = client
         .post("https://practice.contest.atcoder.jp/login")
         .form(&[("name", user), ("password", pass)])
         .send()?;
-    let body = res.text()?;
     Ok(res.headers()
         .get::<reqwest::header::SetCookie>()
         .ok_or(auth::Error::from_kind(auth::ErrorKind::Auth))?
