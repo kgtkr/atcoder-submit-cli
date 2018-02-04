@@ -13,7 +13,7 @@ use std::collections::HashMap;
 mod api;
 extern crate select;
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, RustcDecodable, RustcEncodable, PartialEq)]
 struct Config {
     cookie: api::User,
     lang: i32,

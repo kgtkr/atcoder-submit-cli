@@ -12,7 +12,7 @@ mod auth {
   }
 }
 
-mod scraping {
+mod scrap {
   error_chain!{
       errors{
           Parse
@@ -36,7 +36,7 @@ mod login {
   }
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, RustcDecodable, RustcEncodable, PartialEq)]
 pub struct User {
   issue_time: String,
   kick_id: String,
@@ -102,14 +102,14 @@ pub fn login(user: &str, pass: &str) -> login::Result<User> {
   Ok(User::from_cookie(&cookie)?)
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug, RustcDecodable, RustcEncodable, PartialEq)]
 pub struct Task {
   abc: String,
   name: String,
   id: i32,
 }
 
-pub fn get_tasks(contest: &str, user: &User) -> login::Result<Vec<Task>> {
+pub fn get_tasks(contest: &str, user: &User) -> scrap::Result<Vec<Task>> {
   let client = reqwest::Client::new();
   extern crate select;
   let mut headers = ::hyper::header::Headers::new();
@@ -127,27 +127,26 @@ pub fn get_tasks(contest: &str, user: &User) -> login::Result<Vec<Task>> {
   Ok(
     doc
       .find(Name("table").child(Name("tbody")).child(Name("tr")))
-      .map(|tr| {
+      .filter_map(|tr| {
         let tds = tr.find(Name("td")).collect::<Vec<_>>();
-        let abc = tds[0].text();
-        let name = tds[1].text();
-        let id = tds[4]
+        let abc = tds.get(0)?.text();
+        let name = tds.get(1)?.text();
+        let id = tds
+          .get(4)?
           .find(Name("a"))
-          .nth(0)
-          .unwrap()
-          .attr("href")
-          .unwrap()
+          .nth(0)?
+          .attr("href")?
           .chars()
           .skip(16)
           .collect::<String>()
           .parse::<i32>()
-          .unwrap();
+          .ok()?;
 
-        Task {
+        Some(Task {
           abc: abc,
           name: name,
           id: id,
-        }
+        })
       })
       .collect::<Vec<_>>(),
   )
