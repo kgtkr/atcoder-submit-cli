@@ -8,26 +8,17 @@ extern crate hyper;
 extern crate reqwest;
 extern crate scraper;
 use clap::{App, Arg};
-use cookie::Cookie;
+extern crate rustc_serialize;
+use rustc_serialize::json;
+use std::collections::HashMap;
+mod api;
 
-mod auth {
-    error_chain!{
-        errors{
-            Auth
-        }
-    }
-}
-
-mod login {
-    error_chain! {
-        foreign_links {
-            Net(::reqwest::Error);
-        }
-
-        links{
-            Auth(::auth::Error,::auth::ErrorKind);
-        }
-    }
+#[derive(Debug, RustcDecodable, RustcEncodable)]
+struct Config {
+    session: String,
+    lang: String,
+    filename: String,
+    langs: HashMap<String, String>,
 }
 
 fn main() {
@@ -57,24 +48,5 @@ fn main() {
     let user = matches.value_of("user").unwrap();
     let pass = matches.value_of("pass").unwrap();
 
-    println!("{:?}", login(user, pass));
-}
-
-fn login(user: &str, pass: &str) -> login::Result<String> {
-    let client = reqwest::Client::builder()
-        .redirect(reqwest::RedirectPolicy::none())
-        .build()?;
-    let res = client
-        .post("https://practice.contest.atcoder.jp/login")
-        .form(&[("name", user), ("password", pass)])
-        .send()?;
-    Ok(res.headers()
-        .get::<reqwest::header::SetCookie>()
-        .ok_or(auth::Error::from_kind(auth::ErrorKind::Auth))?
-        .iter()
-        .filter_map(|x| Cookie::parse_encoded(x.to_string()).ok())
-        .find(|x| x.name() == "_session")
-        .ok_or(auth::Error::from_kind(auth::ErrorKind::Auth))?
-        .value()
-        .to_string())
+    println!("{:?}", api::login(user, pass));
 }
