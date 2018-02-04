@@ -124,30 +124,32 @@ pub fn get_tasks(contest: &str, user: &User) -> scrap::Result<Vec<Task>> {
     .text()?;
 
   let doc = Document::from(body.as_ref());
-  Ok(
-    doc
-      .find(Name("table").child(Name("tbody")).child(Name("tr")))
-      .filter_map(|tr| {
-        let tds = tr.find(Name("td")).collect::<Vec<_>>();
-        let abc = tds.get(0)?.text();
-        let name = tds.get(1)?.text();
-        let id = tds
-          .get(4)?
-          .find(Name("a"))
-          .nth(0)?
-          .attr("href")?
-          .chars()
-          .skip(16)
-          .collect::<String>()
-          .parse::<i32>()
-          .ok()?;
+  doc
+    .find(Name("table").child(Name("tbody")).child(Name("tr")))
+    .map(|tr| {
+      let tds = tr.find(Name("td")).collect::<Vec<_>>();
+      let abc = tds.get(0)?.text();
+      let name = tds.get(1)?.text();
+      let id = tds
+        .get(4)?
+        .find(Name("a"))
+        .nth(0)?
+        .attr("href")?
+        .chars()
+        .skip(16)
+        .collect::<String>()
+        .parse::<i32>()
+        .ok()?;
 
-        Some(Task {
-          abc: abc,
-          name: name,
-          id: id,
-        })
+      Some(Task {
+        abc: abc,
+        name: name,
+        id: id,
       })
-      .collect::<Vec<_>>(),
-  )
+    })
+    .map(|r| match r {
+      Option::Some(x) => Ok(x),
+      Option::None => Err(scrap::Error::from_kind(scrap::ErrorKind::Parse)),
+    })
+    .collect::<Result<_, _>>()
 }
