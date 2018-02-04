@@ -1,11 +1,25 @@
 use cookie::Cookie;
 use reqwest;
 use std::collections::HashMap;
+use select::document::Document;
+use select::predicate::{Attr, Class, Name, Predicate};
 
 mod auth {
   error_chain!{
       errors{
           Auth
+      }
+  }
+}
+
+mod scraping {
+  error_chain!{
+      errors{
+          Parse
+      }
+
+      foreign_links {
+          Net(::reqwest::Error);
       }
   }
 }
@@ -62,8 +76,8 @@ impl User {
     })
   }
 
-  fn to_cookie(&self) -> reqwest::header::Cookie {
-    let mut cookie = reqwest::header::Cookie::new();
+  fn to_cookie(&self) -> ::hyper::header::Cookie {
+    let mut cookie = ::hyper::header::Cookie::new();
     cookie.append("_session", self.session.to_string());
     cookie.append("_kick_id", self.kick_id.to_string());
     cookie.append("_issue_time", self.issue_time.to_string());
@@ -88,4 +102,53 @@ pub fn login(user: &str, pass: &str) -> login::Result<User> {
   Ok(User::from_cookie(&cookie)?)
 }
 
-//pub fn get_tasks(contest: &str, user: User) -> Result<Vec<(String, String)>, ()> {}
+#[derive(Debug, RustcDecodable, RustcEncodable)]
+pub struct Task {
+  abc: String,
+  name: String,
+  id: i32,
+}
+
+pub fn get_tasks(contest: &str, user: &User) -> login::Result<Vec<Task>> {
+  let client = reqwest::Client::new();
+  extern crate select;
+  let mut headers = ::hyper::header::Headers::new();
+  headers.set(user.to_cookie());
+  let body = client
+    .get(&format!(
+      "https://{}.contest.atcoder.jp/assignments",
+      contest
+    ))
+    .headers(headers)
+    .send()?
+    .text()?;
+
+  let doc = Document::from(body.as_ref());
+  Ok(
+    doc
+      .find(Name("table").child(Name("tbody")).child(Name("tr")))
+      .map(|tr| {
+        let tds = tr.find(Name("td")).collect::<Vec<_>>();
+        let abc = tds[0].text();
+        let name = tds[1].text();
+        let id = tds[4]
+          .find(Name("a"))
+          .nth(0)
+          .unwrap()
+          .attr("href")
+          .unwrap()
+          .chars()
+          .skip(16)
+          .collect::<String>()
+          .parse::<i32>()
+          .unwrap();
+
+        Task {
+          abc: abc,
+          name: name,
+          id: id,
+        }
+      })
+      .collect::<Vec<_>>(),
+  )
+}

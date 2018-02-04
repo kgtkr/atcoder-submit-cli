@@ -6,7 +6,7 @@ authors = ["kgtkr <kgtkr.jp@gmail.com>"]
 [dependencies]
 clap = "2.29"
 error-chain = "0.11"
-scraper = "0.4.0"
+select = "0.4.2"
 reqwest = "0.8.4"
 hyper = "0.11"
 cookie = {version="0.10",features = ["percent-encode"]}

@@ -6,12 +6,12 @@ extern crate cookie;
 extern crate error_chain;
 extern crate hyper;
 extern crate reqwest;
-extern crate scraper;
 use clap::{App, Arg};
 extern crate rustc_serialize;
 use rustc_serialize::json;
 use std::collections::HashMap;
 mod api;
+extern crate select;
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 struct Config {
@@ -48,5 +48,9 @@ fn main() {
     let user = matches.value_of("user").unwrap();
     let pass = matches.value_of("pass").unwrap();
 
-    println!("{:?}", api::login(user, pass));
+    let user = api::login(user, pass);
+    println!(
+        "{:?}",
+        api::get_tasks("code-festival-2017-quala", &user.unwrap())
+    );
 }
