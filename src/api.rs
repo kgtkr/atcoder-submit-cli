@@ -147,9 +147,6 @@ pub fn get_tasks(contest: &str, user: &User) -> scrap::Result<Vec<Task>> {
         id: id,
       })
     })
-    .map(|r| match r {
-      Option::Some(x) => Ok(x),
-      Option::None => Err(scrap::Error::from_kind(scrap::ErrorKind::Parse)),
-    })
+    .map(|r| r.ok_or(scrap::Error::from_kind(scrap::ErrorKind::Parse)))
     .collect::<Result<_, _>>()
 }
