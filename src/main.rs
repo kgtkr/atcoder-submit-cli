@@ -15,10 +15,10 @@ mod api;
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
 struct Config {
-    session: String,
-    lang: String,
+    cookie: api::User,
+    lang: i32,
     filename: String,
-    langs: HashMap<String, String>,
+    langs: HashMap<String, i32>,
 }
 
 fn main() {
