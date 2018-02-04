@@ -61,6 +61,16 @@ impl User {
         .to_string(),
     })
   }
+
+  fn to_cookie(&self) -> reqwest::header::Cookie {
+    let mut cookie = reqwest::header::Cookie::new();
+    cookie.append("_session", self.session.to_string());
+    cookie.append("_kick_id", self.kick_id.to_string());
+    cookie.append("_issue_time", self.issue_time.to_string());
+    cookie.append("_user_id", self.user_id.to_string());
+    cookie.append("_user_name", self.user_name.to_string());
+    cookie
+  }
 }
 
 pub fn login(user: &str, pass: &str) -> login::Result<User> {
