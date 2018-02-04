@@ -8,11 +8,24 @@ extern crate hyper;
 extern crate reqwest;
 extern crate scraper;
 use clap::{App, Arg};
+use cookie::Cookie;
 
-mod errors {
+mod auth {
+    error_chain!{
+        errors{
+            Auth
+        }
+    }
+}
+
+mod login {
     error_chain! {
         foreign_links {
-            RequestError(::reqwest::Error);
+            Net(::reqwest::Error);
+        }
+
+        links{
+            Auth(::auth::Error,::auth::ErrorKind);
         }
     }
 }
@@ -47,7 +60,7 @@ fn main() {
     println!("{:?}", login(user, pass));
 }
 
-fn login(user: &str, pass: &str) -> errors::Result<String> {
+fn login(user: &str, pass: &str) -> login::Result<String> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::RedirectPolicy::none())
         .build()?;
@@ -58,11 +71,11 @@ fn login(user: &str, pass: &str) -> errors::Result<String> {
     let body = res.text()?;
     Ok(res.headers()
         .get::<reqwest::header::SetCookie>()
-        .unwrap()
+        .ok_or(auth::Error::from_kind(auth::ErrorKind::Auth))?
         .iter()
-        .map(|x| cookie::Cookie::parse(x.to_string()).unwrap())
+        .filter_map(|x| Cookie::parse_encoded(x.to_string()).ok())
         .find(|x| x.name() == "_session")
-        .unwrap()
+        .ok_or(auth::Error::from_kind(auth::ErrorKind::Auth))?
         .value()
         .to_string())
 }
